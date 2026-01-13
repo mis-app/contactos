@@ -173,6 +173,28 @@
             line-height: 1.5;
         }
 
+        .info-box {
+            background: #e3f2fd;
+            border: 1px solid #bbdefb;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .info-box h4 {
+            color: #1565c0;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            padding-left: 20px;
+            margin: 0;
+        }
+
+        .info-box li {
+            margin-bottom: 5px;
+        }
+
         .success-message {
             background: #d4edda;
             color: #155724;
@@ -242,6 +264,7 @@
                 <input type="text" id="prefix" placeholder="Ej. 21-2" class="input-field" value="">
             </div>
 
+            
             <button id="processBtn" class="btn">
                 Descargar Archivo
             </button>
@@ -268,7 +291,7 @@
         </div>
 
         <footer>
-            <p>Desarrollo | Juan Garde</p>
+            <p>Desarrollado para procesar archivos VCF • Formato compatible con Google Contacts, iOS, Android</p>
         </footer>
     </div>
 
@@ -355,26 +378,63 @@
                 for (let i = 0; i < lines.length; i++) {
                     let line = lines[i];
                     
-                    // Buscar líneas que comiencen con FN
+                    // Procesar campo FN (Formatted Name)
                     if (line.startsWith('FN;') || line.startsWith('FN:')) {
-                        // Encontrar donde está el nombre real
-                        const colonIndex = line.indexOf(':');
-                        if (colonIndex !== -1) {
-                            const beforeColon = line.substring(0, colonIndex + 1);
-                            const afterColon = line.substring(colonIndex + 1);
-                            
-                            // Verificar si ya tiene el prefijo
-                            if (!afterColon.startsWith(prefix + ' ')) {
-                                // Añadir el prefijo
-                                line = beforeColon + prefix + ' ' + afterColon;
-                            }
-                        }
+                        line = addPrefixToFN(line, prefix);
+                    }
+                    
+                    // Procesar campo N (Name) - formato: N;...:APELLIDOS;NOMBRE
+                    if (line.startsWith('N;')) {
+                        line = addPrefixToN(line, prefix);
                     }
                     
                     modifiedLines.push(line);
                 }
                 
                 return modifiedLines.join('\n');
+            }
+
+            // Añadir prefijo al campo FN
+            function addPrefixToFN(line, prefix) {
+                const colonIndex = line.indexOf(':');
+                if (colonIndex !== -1) {
+                    const beforeColon = line.substring(0, colonIndex + 1);
+                    const afterColon = line.substring(colonIndex + 1);
+                    
+                    // Verificar si ya tiene el prefijo
+                    if (!afterColon.startsWith(prefix + ' ')) {
+                        // Añadir el prefijo
+                        return beforeColon + prefix + ' ' + afterColon;
+                    }
+                }
+                return line;
+            }
+
+            // Añadir prefijo al campo N (después del punto y coma, antes del nombre)
+            function addPrefixToN(line, prefix) {
+                const colonIndex = line.indexOf(':');
+                if (colonIndex !== -1) {
+                    const beforeColon = line.substring(0, colonIndex + 1);
+                    const afterColon = line.substring(colonIndex + 1);
+                    
+                    // Buscar el primer punto y coma después de los dos puntos
+                    const firstSemicolonIndex = afterColon.indexOf(';');
+                    
+                    if (firstSemicolonIndex !== -1) {
+                        // Separar en partes: apellidos y nombre
+                        const apellidos = afterColon.substring(0, firstSemicolonIndex);
+                        let nombre = afterColon.substring(firstSemicolonIndex + 1);
+                        
+                        // Añadir prefijo al nombre (después del ;)
+                        if (!nombre.startsWith(prefix + ' ')) {
+                            nombre = prefix + ' ' + nombre;
+                        }
+                        
+                        // Reconstruir la línea
+                        return beforeColon + apellidos + ';' + nombre;
+                    }
+                }
+                return line;
             }
 
             // Generar nombre modificado para el archivo
